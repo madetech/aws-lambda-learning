@@ -6,7 +6,6 @@ import * as aws from 'aws-sdk';
 const SQSMocked = {
   sendMessage: jest.fn(() => 'hello world'),
   promise: jest.fn(),
-  hello: jest.fn()
 };
 
 jest.mock('aws-sdk', () => {
@@ -128,7 +127,7 @@ describe('Test for sqs-payload-logger', function () {
               .toEqual(`https://${process.env.MQ_HOST}:${process.env.MQ_PORT}/ibmmq/rest/v1/messaging/qmgr/QM1/queue/${process.env.MQ_QUEUE}/message`);
       });
   });
-  it('should push message to SQS dead letter queue when pushing to MQ errors', async () => {
+  it('should push message to SQS dead letter queue when pushing to MQ errors', (done) => {
     process.env.MQ_HOST = 'a-host';
     process.env.MQ_PORT = '1999';
     process.env.MQ_QUEUE = 'my-fake-queue';
@@ -161,9 +160,10 @@ describe('Test for sqs-payload-logger', function () {
           status: 500
         }
     );
-    await pushMessageToMq(event);
+    pushMessageToMq(event);
     moxios.wait(() => {
       expect(SQSMocked.sendMessage).toBeCalled();
+      done();
     });
   });
 });
