@@ -1,6 +1,6 @@
 import {SQSEvent} from "aws-lambda";
 import * as moxios from 'moxios';
-import { pushMessageToMq } from "../../../src/handlers/sqs-payload-logger";
+import { pushMessageToMq } from "../../../src/handlers";
 import * as aws from 'aws-sdk';
 
 const SQSMocked = {

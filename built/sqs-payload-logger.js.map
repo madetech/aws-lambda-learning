@@ -1,1 +1,0 @@
-{"version":3,"file":"sqs-payload-logger.js","sourceRoot":"","sources":["../src/handlers/sqs-payload-logger.ts"],"names":[],"mappings":";;AAEA;;GAEG;AACH,OAAO,CAAC,uBAAuB,GAAG,KAAK,EAAE,KAA2B,EAAiB,EAAE;IACnF,qFAAqF;IACrF,8EAA8E;IAC9E,OAAO,CAAC,IAAI,CAAC,IAAI,CAAC,SAAS,CAAC,KAAK,CAAC,CAAC,CAAC;AACxC,CAAC,CAAA"}

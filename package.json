@@ -21,7 +21,8 @@
     "scripts": {
         "build": "tsc",
         "test": "jest",
-        "lint": "npx eslint src/**/*.ts"
+        "lint": "npx eslint src/**/*.ts",
+        "zip": "zip -r sqs.zip index.js node_modules"
     },
     "dependencies": {
         "axios": "^0.21.0"
