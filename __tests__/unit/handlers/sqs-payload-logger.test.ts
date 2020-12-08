@@ -4,7 +4,7 @@ import { pushMessageToMq } from "../../../src/handlers";
 import * as aws from 'aws-sdk';
 
 const SQSMocked = {
-  sendMessage: jest.fn(),
+  sendMessage: jest.fn((params: aws.SQS.Types.SendMessageRequest) => ({ promise: jest.fn() })),
   promise: jest.fn(),
 };
 
@@ -127,7 +127,7 @@ describe('Test for sqs-payload-logger', function () {
               .toEqual(`https://${process.env.MQ_HOST}:${process.env.MQ_PORT}/ibmmq/rest/v1/messaging/qmgr/QM1/queue/${process.env.MQ_QUEUE}/message`);
       });
   });
-  it('should push message to SQS dead letter queue when pushing to MQ errors', (done) => {
+  it('should push message to SQS dead letter queue when pushing to MQ errors', async () => {
     process.env.MQ_HOST = 'a-host';
     process.env.MQ_PORT = '1999';
     process.env.MQ_QUEUE = 'my-fake-queue';
@@ -160,14 +160,13 @@ describe('Test for sqs-payload-logger', function () {
           status: 500
         }
     );
-    pushMessageToMq(event);
-    moxios.wait(() => {
-      expect(SQSMocked.sendMessage).toBeCalledWith({
+    
+    await pushMessageToMq(event);
+    
+    expect(SQSMocked.sendMessage).toBeCalledWith({
         DelaySeconds: 10,
         MessageBody: JSON.stringify(event.Records[0]),
         QueueUrl: 'dead-letter-queue'
-      });
-      done();
     });
   });
 });

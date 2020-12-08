@@ -7,9 +7,9 @@ import * as aws from 'aws-sdk';
  */
 export const pushMessageToMq = async (event: SQSEvent): Promise<void> => {
     console.info(`Received ${event.Records.length} records`);
-    event.Records.forEach((record) => {
+    await Promise.all(event.Records.map(async (record) => {
         console.info("Posting record to MQ");
-        axios.post(
+        await axios.post(
             `https://${process.env.MQ_HOST}:${process.env.MQ_PORT}/ibmmq/rest/v1/messaging/qmgr/QM1/queue/${process.env.MQ_QUEUE}/message`,
             record,
             {
@@ -19,8 +19,9 @@ export const pushMessageToMq = async (event: SQSEvent): Promise<void> => {
                     "Authorization": `Basic ${process.env.MQ_USER}:${process.env.MQ_PASSWORD}`
                 },
             }
-        ).catch(() => {
+        ).catch(async () => {
             console.info("Failed to post to MQ");
+            console.info(`Pushing to ${process.env.DEAD_LETTER_QUEUE}`)
             const SQS = new aws.SQS();
             const params = {
                 // Remove DelaySeconds parameter and value for FIFO queues
@@ -28,7 +29,8 @@ export const pushMessageToMq = async (event: SQSEvent): Promise<void> => {
                MessageBody: JSON.stringify(record),
                QueueUrl: process.env.DEAD_LETTER_QUEUE
              };
-             SQS.sendMessage(params)
+
+            await SQS.sendMessage(params).promise()
         });
-    });
+    }));
 }
