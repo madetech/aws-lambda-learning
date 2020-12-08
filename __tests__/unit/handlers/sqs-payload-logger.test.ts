@@ -4,7 +4,7 @@ import { pushMessageToMq } from "../../../src/handlers/sqs-payload-logger";
 import * as aws from 'aws-sdk';
 
 const SQSMocked = {
-  sendMessage: jest.fn(() => 'hello world'),
+  sendMessage: jest.fn(),
   promise: jest.fn(),
 };
 
@@ -133,7 +133,7 @@ describe('Test for sqs-payload-logger', function () {
     process.env.MQ_QUEUE = 'my-fake-queue';
     process.env.MQ_USER = 'a-user';
     process.env.MQ_PASSWORD = 'a-password';
-
+    process.env.DEAD_LETTER_QUEUE = 'dead-letter-queue';
     const event : SQSEvent = {
         Records: [
             {
@@ -162,7 +162,11 @@ describe('Test for sqs-payload-logger', function () {
     );
     pushMessageToMq(event);
     moxios.wait(() => {
-      expect(SQSMocked.sendMessage).toBeCalled();
+      expect(SQSMocked.sendMessage).toBeCalledWith({
+        DelaySeconds: 10,
+        MessageBody: JSON.stringify(event.Records[0]),
+        QueueUrl: 'dead-letter-queue'
+      });
       done();
     });
   });
