@@ -18,10 +18,10 @@ export const pushMessageToMq = async (event: SQSEvent, instance: AxiosInstance =
     URL,
     record,
     {
-    headers: {
-      "ibm-mq-rest-csrf-token": "blank",
-      "Content-Type": "text/plain;charset=utf-8"
-    },
+      headers: {
+        "ibm-mq-rest-csrf-token": "blank",
+        "Content-Type": "text/plain;charset=utf-8"
+      }
     }
   )
   }));
