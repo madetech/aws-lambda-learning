@@ -4,3 +4,4 @@ node_modules
 *.zip
 .aws-sam
 built
+scripts/environment.json
