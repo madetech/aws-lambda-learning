@@ -1,6 +1,6 @@
-import { SQSEvent } from "aws-lambda";
-import * as https from 'https';
-import axios, { AxiosInstance } from 'axios';
+import { SQSRecord } from "aws-lambda";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
+import * as https from "https";
 
 const axiosInstance = axios.create({
   httpsAgent: new https.Agent({  
@@ -8,13 +8,10 @@ const axiosInstance = axios.create({
   })
 });
 
-export const pushMessageToMq = async (event: SQSEvent, instance: AxiosInstance = axiosInstance ): Promise<void> => {
-  console.info(`Received ${event.Records.length} records`);
-  await Promise.all(event.Records.map(async (record) => {
-  console.info("Posting record to MQ");
+export async function pushMessageToMq(record: SQSRecord, instance: AxiosInstance = axiosInstance ): Promise<AxiosResponse> {
   const URL = `https://${process.env.MQ_USER}:${process.env.MQ_PASSWORD}@${process.env.MQ_HOST}:${process.env.MQ_PORT}/ibmmq/rest/v2/messaging/qmgr/${process.env.MQ_QUEUE_MANAGER}/queue/${process.env.MQ_QUEUE}/message`;
   console.log(`Posting to: ${URL}`);
-  await instance.post(
+  const response = await instance.post(
     URL,
     record,
     {
@@ -24,5 +21,5 @@ export const pushMessageToMq = async (event: SQSEvent, instance: AxiosInstance =
       }
     }
   )
-  }));
+  return response;
 }

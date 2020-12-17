@@ -1,20 +1,15 @@
-import {SQSEvent} from "aws-lambda";
-import axios, { AxiosInstance } from 'axios';
-import * as moxios from 'moxios';
-import { pushMessageToMq } from "../../../src/handlers/sqs-payload-logger";
+import { SQSEvent } from "aws-lambda"
+import { sendMessage } from "../../src";
+import * as mqGateway from "../../src/gateways/mq-gateway"
 
-describe('Test for sqs-payload-logger', function () {
-  let axiosInstance: AxiosInstance;
+jest.mock('../../src/gateways/mq-gateway', () => {
+  return {
+    pushMessageToMq: jest.fn(() => { return 200 })
+  }
+});
 
-  beforeEach(() => {
-    axiosInstance = axios.create();
-    moxios.install(axiosInstance);
-  });
 
-  afterEach(() => {
-    moxios.uninstall(axiosInstance);
-  });
-
+describe('Test for sendMessage', function () {
   process.env.MQ_HOST = 'a-host';
   process.env.MQ_PORT = '1999';
   process.env.MQ_QUEUE_MANAGER = 'QMGR';
@@ -22,9 +17,11 @@ describe('Test for sqs-payload-logger', function () {
   process.env.MQ_USER = 'a-user';
   process.env.MQ_PASSWORD = 'a-password';
 
-  const URL = `https://${process.env.MQ_USER}:${process.env.MQ_PASSWORD}@${process.env.MQ_HOST}:${process.env.MQ_PORT}/ibmmq/rest/v2/messaging/qmgr/${process.env.MQ_QUEUE_MANAGER}/queue/${process.env.MQ_QUEUE}/message`;
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
   
-  it('should call the MQ API when a message event is triggered', async () => {
+  it('should call the MQ gateway with a record when a message event is triggered', async () => {
     const event : SQSEvent = {
       Records: [
         {
@@ -45,24 +42,13 @@ describe('Test for sqs-payload-logger', function () {
         },
       ]
     };
-
-    moxios.stubRequest(
-      URL,
-      {
-      status: 200,
-      }
-    );
     
-    await pushMessageToMq(event, axiosInstance);
+    await sendMessage(event);
 
-    const request = moxios.requests.mostRecent();
-    expect(request.config.method).toEqual("post");
-    expect(request.url)
-      .toEqual(URL);
-    expect(JSON.parse(request.config.data)).toEqual(event.Records[0]);
+    expect(mqGateway.pushMessageToMq).toBeCalledWith(event.Records[0])
   });
-
-  it('should call the MQ endpoint for each record supplied by the event', async () => {
+  
+  it('should call the MQ gateway multiple times when a message event with multiple records is triggered', async () => {
     const event : SQSEvent = {
       Records: [
         {
@@ -99,20 +85,12 @@ describe('Test for sqs-payload-logger', function () {
         }
       ]
     };
-    moxios.stubRequest(
-      URL,
-      {
-        status: 200,
-      }
-    );
-    await pushMessageToMq(event, axiosInstance);
+    
+    await sendMessage(event);
 
-    event.Records.forEach((record, index) => {
-      const request = moxios.requests.at(index);
-      expect(request).toBeDefined();
-      expect(request.config.method).toEqual("post");
-      expect(request.url)
-        .toEqual(URL);
-    });
+    expect(mqGateway.pushMessageToMq).toBeCalledTimes(2);
+    event.Records.forEach((record) => {
+      expect(mqGateway.pushMessageToMq).toBeCalledWith(record)
+    })
   });
 });
