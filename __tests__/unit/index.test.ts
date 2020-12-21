@@ -1,15 +1,22 @@
 import { SQSEvent } from "aws-lambda"
 import { sendMessage } from "../../src";
-import * as mqGateway from "../../src/gateways/mq-gateway"
+import MqGateway from "../../src/gateways/mq-gateway"
+
+const MqGatewayMock = {
+  execute: jest.fn()
+};
 
 jest.mock('../../src/gateways/mq-gateway', () => {
   return {
-    pushMessageToMq: jest.fn(() => { return 200 })
+    default: jest.fn(() => MqGatewayMock)
   }
 });
 
-
 describe('Test for sendMessage', function () {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+  
   process.env.MQ_HOST = 'a-host';
   process.env.MQ_PORT = '1999';
   process.env.MQ_QUEUE_MANAGER = 'QMGR';
@@ -17,10 +24,15 @@ describe('Test for sendMessage', function () {
   process.env.MQ_USER = 'a-user';
   process.env.MQ_PASSWORD = 'a-password';
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-  
+  const env = {
+    MQ_HOST: process.env.MQ_HOST,
+    MQ_PORT: process.env.MQ_PORT,
+    MQ_QUEUE_MANAGER: process.env.MQ_QUEUE_MANAGER,
+    MQ_QUEUE: process.env.MQ_QUEUE,
+    MQ_USER: process.env.MQ_USER,
+    MQ_PASSWORD: process.env.MQ_PASSWORD
+  }
+
   it('should call the MQ gateway with a record when a message event is triggered', async () => {
     const event : SQSEvent = {
       Records: [
@@ -45,7 +57,8 @@ describe('Test for sendMessage', function () {
     
     await sendMessage(event);
 
-    expect(mqGateway.pushMessageToMq).toBeCalledWith(event.Records[0])
+    expect(MqGateway).toHaveBeenCalledWith(JSON.stringify(event.Records[0]), env)
+    expect(MqGatewayMock.execute).toHaveBeenCalledTimes(1)
   });
   
   it('should call the MQ gateway multiple times when a message event with multiple records is triggered', async () => {
@@ -88,9 +101,9 @@ describe('Test for sendMessage', function () {
     
     await sendMessage(event);
 
-    expect(mqGateway.pushMessageToMq).toBeCalledTimes(2);
     event.Records.forEach((record) => {
-      expect(mqGateway.pushMessageToMq).toBeCalledWith(record)
+      expect(MqGateway).toBeCalledWith(JSON.stringify(record), env)
     })
+    expect(MqGatewayMock.execute).toBeCalledTimes(2);
   });
 });
