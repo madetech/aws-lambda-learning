@@ -26,7 +26,7 @@ There's a `scripts/environment.json.example` that can be copied, which needs som
 
 `make setup-and-send`
 
-This will set up the infrastructure as well as send the message in `/scripts/message.txt` (as specified in `scripts/send_message.sh`) to the SQS queue.
+This will set up the infrastructure as well as send the message in `/scripts/message.xml` (as specified in `scripts/send_message.sh`) to the SQS queue.
 
 
 ## If you want to send another message after running `setup-and-send` you can also just run:
