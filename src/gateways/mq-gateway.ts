@@ -1,6 +1,14 @@
-import { SQSRecord } from "aws-lambda";
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import * as https from "https";
+
+type MqConfig = {
+  MQ_USER: string,
+  MQ_PASSWORD: string,
+  MQ_HOST: string,
+  MQ_PORT: string,
+  MQ_QUEUE_MANAGER: string,
+  MQ_QUEUE: string
+}
 
 const axiosInstance = axios.create({
   httpsAgent: new https.Agent({  
@@ -8,18 +16,31 @@ const axiosInstance = axios.create({
   })
 });
 
-export async function pushMessageToMq(record: SQSRecord, instance: AxiosInstance = axiosInstance ): Promise<AxiosResponse> {
-  const URL = `https://${process.env.MQ_USER}:${process.env.MQ_PASSWORD}@${process.env.MQ_HOST}:${process.env.MQ_PORT}/ibmmq/rest/v2/messaging/qmgr/${process.env.MQ_QUEUE_MANAGER}/queue/${process.env.MQ_QUEUE}/message`;
-  console.log(`Posting to: ${URL}`);
-  const response = await instance.post(
-    URL,
-    record,
-    {
-      headers: {
-        "ibm-mq-rest-csrf-token": "blank",
-        "Content-Type": "text/plain;charset=utf-8"
+class MqGateway {
+  URL: string;
+  message: string;
+  instance: AxiosInstance;
+
+  constructor(message: string, env: MqConfig, instance?: AxiosInstance) {
+    this.URL = `https://${env.MQ_USER}:${env.MQ_PASSWORD}@${env.MQ_HOST}:${env.MQ_PORT}/ibmmq/rest/v2/messaging/qmgr/${env.MQ_QUEUE_MANAGER}/queue/${env.MQ_QUEUE}/message`;
+    this.message = message;
+    this.instance = instance || axiosInstance;
+  }
+
+  async execute(): Promise<AxiosResponse> {
+    console.log(`Posting to: ${this.URL}`);
+    const response = this.instance.post(
+      this.URL,
+      this.message,
+      {
+        headers: {
+          "ibm-mq-rest-csrf-token": "blank",
+          "Content-Type": "text/plain;charset=utf-8"
+        }
       }
-    }
-  )
-  return response;
+    )
+    return response;
+  }
 }
+
+export default MqGateway;

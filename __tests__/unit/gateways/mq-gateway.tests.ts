@@ -1,17 +1,19 @@
 import axios from "axios";
 import * as moxios from "moxios";
-import { pushMessageToMq } from "../../../src/gateways/mq-gateway";
+import MqGateway from "../../../src/gateways/mq-gateway";
 
-process.env.MQ_HOST = 'a-host';
-process.env.MQ_PORT = '1999';
-process.env.MQ_QUEUE_MANAGER = 'QMGR';
-process.env.MQ_QUEUE = 'my-fake-queue';
-process.env.MQ_USER = 'a-user';
-process.env.MQ_PASSWORD = 'a-password';
+const env = {
+  MQ_HOST: 'a-host',
+  MQ_PORT: '1999',
+  MQ_QUEUE_MANAGER: 'QMGR',
+  MQ_QUEUE: 'my-fake-queue',
+  MQ_USER: 'a-user',
+  MQ_PASSWORD: 'a-password',
+}
 
-const URL = `https://${process.env.MQ_USER}:${process.env.MQ_PASSWORD}@${process.env.MQ_HOST}:${process.env.MQ_PORT}/ibmmq/rest/v2/messaging/qmgr/${process.env.MQ_QUEUE_MANAGER}/queue/${process.env.MQ_QUEUE}/message`;
+const URL = `https://${env.MQ_USER}:${env.MQ_PASSWORD}@${env.MQ_HOST}:${env.MQ_PORT}/ibmmq/rest/v2/messaging/qmgr/${env.MQ_QUEUE_MANAGER}/queue/${env.MQ_QUEUE}/message`;
 const axiosInstance = axios.create();
-const record = {
+const message = {
     "messageId": "059f36b4-87a3-44ab-832-661975830a7d",
     "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
     "body": "Test message.",
@@ -21,14 +23,14 @@ const record = {
       "SenderId": "AIDAIENQZJOLO23YVJ4VO",
       "ApproximateFirstReceiveTimestamp": "1545082649185"
     },
-    "messageAttributes": {},
+    "messageAttributes": "{}",
     "md5OfBody": "e4e68fb7bd0e697a0ae8f1bb342846b3",
     "eventSource": "aws:sqs",
     "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:my-queue",
     "awsRegion": "us-east-2"
-};
+}.toString();
 
-describe('Mq-gateway', function () {
+describe.only('MqGateway', function () {
   beforeEach(() => {
     moxios.install(axiosInstance);
   });
@@ -37,7 +39,7 @@ describe('Mq-gateway', function () {
     moxios.uninstall(axiosInstance);
   });
   
-  it('makes correct call to the MQ API returns the response', async () => {
+  it.only('makes correct call to the MQ API returns the response', async () => {
     moxios.stubRequest(
       URL,
       {
@@ -45,13 +47,15 @@ describe('Mq-gateway', function () {
       }
     );
     
-    const response = await pushMessageToMq(record, axiosInstance);
+    const mqGateway = new MqGateway(message, env, axiosInstance)
+
+    const response = await mqGateway.execute();
 
     const request = moxios.requests.mostRecent();
     expect(request.config.method).toEqual("post");
     expect(request.url)
       .toEqual(URL);
-    expect(JSON.parse(request.config.data)).toEqual(record);
+    expect(request.config.data).toEqual(message);
     expect(response.status).toEqual(200)
   });
 });
