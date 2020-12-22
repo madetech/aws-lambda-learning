@@ -1,5 +1,14 @@
-import axios from "axios";
-import * as moxios from "moxios";
+const AxiosInstanceMock = {
+  post: jest.fn((...args) => Promise.resolve(response))
+}
+
+jest.mock('axios', () => {
+  return {
+    default: {
+      create: jest.fn(() => AxiosInstanceMock)
+    }
+  }
+});
 import MqGateway from "../../../src/gateways/mq-gateway";
 
 const env = {
@@ -12,7 +21,6 @@ const env = {
 }
 
 const URL = `https://${env.MQ_USER}:${env.MQ_PASSWORD}@${env.MQ_HOST}:${env.MQ_PORT}/ibmmq/rest/v2/messaging/qmgr/${env.MQ_QUEUE_MANAGER}/queue/${env.MQ_QUEUE}/message`;
-const axiosInstance = axios.create();
 const message = {
     "messageId": "059f36b4-87a3-44ab-832-661975830a7d",
     "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
@@ -29,34 +37,24 @@ const message = {
     "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:my-queue",
     "awsRegion": "us-east-2"
 }.toString();
+const headers = {
+  headers: {
+    "ibm-mq-rest-csrf-token": "blank",
+    "Content-Type": "text/plain;charset=utf-8"
+  }
+};
+const response = {
+  status: 200,
+  statusMessage: 'Success!'
+};
 
 describe.only('MqGateway', function () {
-  beforeEach(() => {
-    moxios.install(axiosInstance);
-  });
-
-  afterEach(() => {
-    moxios.uninstall(axiosInstance);
-  });
-  
   it.only('makes correct call to the MQ API returns the response', async () => {
-    moxios.stubRequest(
-      URL,
-      {
-      status: 200,
-      }
-    );
-    
-    const mqGateway = new MqGateway(message, env, axiosInstance)
+    const mqGateway = new MqGateway(message, env)
+    const mQresponse = await mqGateway.execute();
 
-    const response = await mqGateway.execute();
-
-    const request = moxios.requests.mostRecent();
-    expect(request.config.method).toEqual("post");
-    expect(request.url)
-      .toEqual(URL);
-    expect(request.config.data).toEqual(message);
-    expect(response.status).toEqual(200)
+    expect(AxiosInstanceMock.post).toBeCalledWith(URL, message, headers)
+    expect(mQresponse).toEqual(response)
   });
 });
 
