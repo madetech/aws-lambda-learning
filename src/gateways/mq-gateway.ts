@@ -21,10 +21,10 @@ class MqGateway {
   message: string;
   instance: AxiosInstance;
 
-  constructor(message: string, env: MqConfig, instance?: AxiosInstance) {
+  constructor(message: string, env: MqConfig) {
     this.URL = `https://${env.MQ_USER}:${env.MQ_PASSWORD}@${env.MQ_HOST}:${env.MQ_PORT}/ibmmq/rest/v2/messaging/qmgr/${env.MQ_QUEUE_MANAGER}/queue/${env.MQ_QUEUE}/message`;
     this.message = message;
-    this.instance = instance || axiosInstance;
+    this.instance = axiosInstance;
   }
 
   async execute(): Promise<AxiosResponse> {
